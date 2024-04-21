@@ -1,0 +1,4 @@
+main: eu.acewolf.spigot.worldtimeout.WorldTimeout
+version: 1.0
+author: Phillip
+name: WorldTimeout

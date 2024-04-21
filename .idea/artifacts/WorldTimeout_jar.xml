@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="WorldTimeout:jar">
+    <output-path>$PROJECT_DIR$/../pl</output-path>
+    <root id="archive" name="WorldTimeout.jar">
+      <element id="module-output" name="WorldTimeout" />
+    </root>
+  </artifact>
+</component>
