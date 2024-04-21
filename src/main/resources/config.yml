@@ -4,3 +4,7 @@ mysql:
   database: database
   host: localhost
   port: 3306
+
+worlds:
+  world1: 1m
+  world2: 2m

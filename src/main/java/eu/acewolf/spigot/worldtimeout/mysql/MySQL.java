@@ -45,12 +45,5 @@ public class MySQL {
     public Connection getConnection() {
         return connection;
     }
-
-    public void reopenConnection() {
-        if (!isConnected()) {
-            connect();
-        }
-    }
 }
-
 
