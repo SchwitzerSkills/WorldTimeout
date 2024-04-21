@@ -2,7 +2,6 @@ package eu.acewolf.spigot.worldtimeout.listeners;
 
 import eu.acewolf.spigot.worldtimeout.WorldTimeout;
 import net.luckperms.api.LuckPermsProvider;
-import net.luckperms.api.model.data.DataMutateResult;
 import net.luckperms.api.model.user.User;
 import net.luckperms.api.node.types.PermissionNode;
 import net.md_5.bungee.api.ChatMessageType;
@@ -22,24 +21,21 @@ public class TeleportListener implements Listener {
     public void onTeleport(PlayerTeleportEvent event){
         Player player = event.getPlayer();
         World world = event.getTo().getWorld();
-        World fromWorld = event.getFrom().getWorld();;
+        World fromWorld = event.getFrom().getWorld();
         long currentTime = System.currentTimeMillis();
         long timeout = 0;
         long totalTimeout;
-        User user = LuckPermsProvider.get().getPlayerAdapter(Player.class).getUser(player);
-        String permission = "";
+        String permission;
 
         for(String key : WorldTimeout.getInstance().getConfig().getConfigurationSection("worlds").getKeys(false)){
             if (fromWorld.getName().equalsIgnoreCase(key) && WorldTimeout.getInstance().activityTimeout.get(player) != null &&
             WorldTimeout.getInstance().getPlayerTimeoutMySQL().hasPlayerTimeoutInWorld(player.getUniqueId().toString(), key)) {
-                player.sendMessage("update timeout " + WorldTimeout.getInstance().activityTimeout.get(player));
                 long activty = WorldTimeout.getInstance().activityTimeout.get(player);
                 WorldTimeout.getInstance().getPlayerTimeoutMySQL().updatePlayerTimeout(player.getUniqueId().toString(), fromWorld.getName(), activty);
                 WorldTimeout.getInstance().activityTimeout.remove(player);
                 break;
             }
             if (!world.getName().equalsIgnoreCase(key)) {
-                player.sendMessage("nicht diese Welt!");
                 break;
             }
             String timeoutString = WorldTimeout.getInstance().getConfig().getString("worlds." + key);
@@ -49,6 +45,8 @@ public class TeleportListener implements Listener {
             } else if(timeoutString.contains("m")){
                 timeout = Integer.parseInt(timeoutString.replace("m", ""));
             }
+
+            User user = LuckPermsProvider.get().getPlayerAdapter(Player.class).getUser(player);
 
             permission = "system.realm.world." + timeout + "." + key;
             if(!hasPermission(user, permission)){
@@ -106,15 +104,13 @@ public class TeleportListener implements Listener {
                     return;
                 }
                 if (remainingTimeout <= 0) {
-                    player.sendMessage("Aufhören");
+                    player.sendMessage("Zeit abgelaufen");
                     WorldTimeout.getInstance().getPlayerTimeoutMySQL().removePlayerTimeout(player.getUniqueId().toString(), world);
                     WorldTimeout.getInstance().activityTimeout.remove(player);
-                    player.sendMessage(permission);
                     PermissionNode node = PermissionNode.builder(permission).value(true).build();
-                    DataMutateResult result = user.data().remove(node);
-                    player.performCommand("mv tp world");
-                    player.sendMessage(result.wasSuccessful() + "");
+                    user.data().remove(node);
                     LuckPermsProvider.get().getUserManager().saveUser(user);
+                    player.performCommand("spawn");
                     cancel();
                     return;
                 }
