@@ -1,5 +1,6 @@
 package eu.acewolf.spigot.worldtimeout;
 
+import eu.acewolf.spigot.worldtimeout.listeners.JoinListener;
 import eu.acewolf.spigot.worldtimeout.listeners.TeleportListener;
 import eu.acewolf.spigot.worldtimeout.mysql.MySQL;
 import eu.acewolf.spigot.worldtimeout.mysql.PlayerTimeoutMySQL;
@@ -14,7 +15,7 @@ public class WorldTimeout extends JavaPlugin {
 
     public static WorldTimeout instance;
 
-    public static final String PREFIX = "§cWorldTimeout §8| §7";
+    public static String PREFIX = "";
 
     private MySQL mySQL;
     private PlayerTimeoutMySQL playerTimeoutMySQL;
@@ -24,6 +25,8 @@ public class WorldTimeout extends JavaPlugin {
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
+        PREFIX = getConfig().getString("settings.prefix").replace("&", "§");
+
         connectMySQL();
 
         registerListeners(Bukkit.getPluginManager());
@@ -44,6 +47,7 @@ public class WorldTimeout extends JavaPlugin {
 
     public void registerListeners(PluginManager pm){
         pm.registerEvents(new TeleportListener(), this);
+        pm.registerEvents(new JoinListener(), this);
     }
 
     public void registerCommands(){

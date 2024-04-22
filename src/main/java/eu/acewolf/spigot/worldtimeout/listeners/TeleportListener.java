@@ -50,7 +50,8 @@ public class TeleportListener implements Listener {
 
             permission = "system.realm.world." + timeout + "." + key;
             if(!hasPermission(user, permission)){
-                player.sendMessage("Keine Berechtigung");
+                player.sendMessage(WorldTimeout.PREFIX +
+                        WorldTimeout.getInstance().getConfig().getString("settings.noPerms").replace("&", "§"));
                 event.setCancelled(true);
                 break;
             }
@@ -102,23 +103,31 @@ public class TeleportListener implements Listener {
                     return;
                 }
                 if (remainingTimeout <= 0) {
-                    player.sendMessage("Zeit abgelaufen");
+                    player.sendMessage(WorldTimeout.PREFIX +
+                            WorldTimeout.getInstance().getConfig().getString("settings.time.expired").replace("&", "§"));
                     WorldTimeout.getInstance().getPlayerTimeoutMySQL().removePlayerTimeout(player.getUniqueId().toString(), world);
                     WorldTimeout.getInstance().activityTimeout.remove(player);
                     PermissionNode node = PermissionNode.builder(permission).value(true).build();
                     user.data().remove(node);
                     LuckPermsProvider.get().getUserManager().saveUser(user);
-                    player.performCommand("spawn");
+                    player.performCommand(WorldTimeout.getInstance().getConfig().getString("settings.time.command").replace("/", ""));
                     cancel();
                     return;
                 }
 
-                long seconds = remainingTimeout / 1000;
-                long minutes = seconds / 60;
-                long remainingSeconds = seconds % 60;
-                long hours = minutes / 60;
+                if(WorldTimeout.getInstance().getConfig().getBoolean("settings.actionbar.activated")){
+                    long seconds = remainingTimeout / 1000;
+                    long minutes = seconds / 60;
+                    long remainingSeconds = seconds % 60;
+                    long hours = minutes / 60;
 
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent("ZEIT: " + hours + "h " + minutes + "m " + remainingSeconds + "s"));
+                    String actionbarFormat = WorldTimeout.getInstance().getConfig().getString("settings.actionbar.format").replace("&", "§");
+                    actionbarFormat = actionbarFormat.replace("%HOURS%", String.valueOf(hours));
+                    actionbarFormat = actionbarFormat.replace("%MINUTES%", String.valueOf(minutes));
+                    actionbarFormat = actionbarFormat.replace("%SECONDS%", String.valueOf(remainingSeconds));
+
+                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(actionbarFormat));
+                }
                 WorldTimeout.getInstance().activityTimeout.replace(player, remainingTimeout);
             }
         }.runTaskTimer(WorldTimeout.getInstance(), 20, 20);

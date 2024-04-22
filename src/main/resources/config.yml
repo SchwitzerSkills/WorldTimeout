@@ -8,3 +8,13 @@ mysql:
 worlds:
   world1: 1m
   world2: 2m
+
+settings:
+  prefix: "&cWorldTimeout &8| &7"
+  noPerms: "&cDu hast keine Berechtigung"
+  actionbar:
+    activated: true
+    format: "&cZeit&8: §9%HOURS%h %MINUTES%m %SECONDS%s"
+  time:
+    expired: "&cZeit abgelaufen"
+    command: "/spawn"
