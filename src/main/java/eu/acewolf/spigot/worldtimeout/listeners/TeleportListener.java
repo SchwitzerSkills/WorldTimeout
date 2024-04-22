@@ -36,7 +36,7 @@ public class TeleportListener implements Listener {
                 break;
             }
             if (!world.getName().equalsIgnoreCase(key)) {
-                break;
+                continue;
             }
             String timeoutString = WorldTimeout.getInstance().getConfig().getString("worlds." + key);
 
@@ -73,8 +73,6 @@ public class TeleportListener implements Listener {
             run(totalTimeout, player, key, permission, user);
             break;
         }
-
-
     }
 
     public boolean hasPermission(User user, String permission) {
@@ -118,8 +116,9 @@ public class TeleportListener implements Listener {
                 long seconds = remainingTimeout / 1000;
                 long minutes = seconds / 60;
                 long remainingSeconds = seconds % 60;
+                long hours = minutes / 60;
 
-                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent("ZEIT: " + minutes + "m " + remainingSeconds + "s"));
+                player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent("ZEIT: " + hours + "h " + minutes + "m " + remainingSeconds + "s"));
                 WorldTimeout.getInstance().activityTimeout.replace(player, remainingTimeout);
             }
         }.runTaskTimer(WorldTimeout.getInstance(), 20, 20);

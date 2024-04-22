@@ -47,7 +47,6 @@ public class WorldTimeout extends JavaPlugin {
     }
 
     public void registerCommands(){
-
     }
 
     public static WorldTimeout getInstance() {
