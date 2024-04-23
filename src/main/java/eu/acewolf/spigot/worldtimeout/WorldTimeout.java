@@ -126,6 +126,39 @@ public class WorldTimeout extends JavaPlugin {
         }.runTaskTimer(WorldTimeout.getInstance(), 20, 20);
     }
 
+    public boolean calculateTime(String timeoutString, long timeout, Player player, String permission, String key, long totalTimeout, long currentTime){
+
+        if (timeoutString.contains("h")) {
+            timeout = Long.parseLong(timeoutString.replace("h", ""));
+        } else if (timeoutString.contains("m")) {
+            timeout = Long.parseLong(timeoutString.replace("m", ""));
+        }
+
+        User user = LuckPermsProvider.get().getPlayerAdapter(Player.class).getUser(player);
+        permission = "system.realm.world." + timeout + "." + key;
+
+        if (!WorldTimeout.getInstance().hasPermission(user, permission)) {
+            return false;
+        }
+
+        if (WorldTimeout.getInstance().getPlayerTimeoutMySQL().hasPlayerTimeoutInWorld(player.getUniqueId().toString(), key)) {
+            totalTimeout = WorldTimeout.getInstance().getPlayerTimeoutMySQL().getPlayerTimeout(player.getUniqueId().toString(), key);
+            totalTimeout = currentTime + totalTimeout + 1000;
+
+            WorldTimeout.getInstance().getActivityTimeout().put(player, totalTimeout);
+            WorldTimeout.getInstance().run(totalTimeout, player, key, permission, user);
+            return true;
+        }
+
+        timeout = WorldTimeout.getInstance().durationStringToMilliseconds(timeoutString);
+        totalTimeout = currentTime + timeout + 1000;
+        WorldTimeout.getInstance().getPlayerTimeoutMySQL().addPlayerTimeout(player.getUniqueId().toString(), key, totalTimeout);
+        WorldTimeout.getInstance().getActivityTimeout().put(player, totalTimeout);
+
+        WorldTimeout.getInstance().run(totalTimeout, player, key, permission, user);
+        return true;
+    }
+
     public boolean hasPermission(User user, String permission) {
         return user.getCachedData().getPermissionData().checkPermission(permission).asBoolean();
     }

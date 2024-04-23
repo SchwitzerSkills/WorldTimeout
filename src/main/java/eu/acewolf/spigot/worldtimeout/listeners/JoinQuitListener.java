@@ -24,37 +24,16 @@ public class JoinQuitListener implements Listener {
                 long totalTimeout = 0;
                 String permission = "";
 
-                if (timeoutString.contains("h")) {
-                    timeout = Long.parseLong(timeoutString.replace("h", ""));
-                } else if (timeoutString.contains("m")) {
-                    timeout = Long.parseLong(timeoutString.replace("m", ""));
-                }
+                boolean result = WorldTimeout.getInstance().calculateTime(timeoutString, timeout, player, permission, key, totalTimeout, currentTime);
 
-                User user = LuckPermsProvider.get().getPlayerAdapter(Player.class).getUser(player);
-                permission = "system.realm.world." + timeout + "." + key;
-
-                if (!WorldTimeout.getInstance().hasPermission(user, permission)) {
+                if(!result){
                     player.sendMessage(WorldTimeout.PREFIX +
                             WorldTimeout.getInstance().getConfig().getString("settings.noPerms").replace("&", "§"));
                     player.performCommand(WorldTimeout.getInstance().getConfig().getString("settings.time.command").replace("/", ""));
-                    return;
+                    break;
                 }
 
-                if (WorldTimeout.getInstance().getPlayerTimeoutMySQL().hasPlayerTimeoutInWorld(player.getUniqueId().toString(), player.getWorld().getName())) {
-                    totalTimeout = WorldTimeout.getInstance().getPlayerTimeoutMySQL().getPlayerTimeout(player.getUniqueId().toString(), key);
-                    totalTimeout = currentTime + totalTimeout + 1000;
-
-                    WorldTimeout.getInstance().getActivityTimeout().put(player, totalTimeout);
-                    WorldTimeout.getInstance().run(totalTimeout, player, key, permission, user);
-                    return;
-                }
-
-                timeout = WorldTimeout.getInstance().durationStringToMilliseconds(timeoutString);
-                totalTimeout = currentTime + timeout + 1000;
-                WorldTimeout.getInstance().getPlayerTimeoutMySQL().addPlayerTimeout(player.getUniqueId().toString(), key, totalTimeout);
-                WorldTimeout.getInstance().getActivityTimeout().put(player, totalTimeout);
-
-                WorldTimeout.getInstance().run(totalTimeout, player, key, permission, user);
+                break;
             }
         }
     }

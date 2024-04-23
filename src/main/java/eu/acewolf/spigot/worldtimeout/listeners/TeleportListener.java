@@ -29,8 +29,8 @@ public class TeleportListener implements Listener {
         World fromWorld = event.getFrom().getWorld();
         long currentTime = System.currentTimeMillis();
         long timeout = 0;
-        long totalTimeout;
-        String permission;
+        long totalTimeout = 0;
+        String permission = "";
 
         Map<String, Object> configWorlds = plugin.getConfig().getConfigurationSection("worlds").getValues(false);
 
@@ -44,7 +44,7 @@ public class TeleportListener implements Listener {
             String key = entry.getKey();
             String timeoutString = (String) entry.getValue();
 
-            if (fromWorld.getName().equalsIgnoreCase(key) && plugin.getActivityTimeout().get(player) != null &&
+            if (fromWorld.getName().equalsIgnoreCase(key) && plugin.getActivityTimeout().containsKey(player) &&
                     plugin.getPlayerTimeoutMySQL().hasPlayerTimeoutInWorld(player.getUniqueId().toString(), key)) {
                 long activity = plugin.getActivityTimeout().get(player);
                 plugin.getPlayerTimeoutMySQL().updatePlayerTimeout(player.getUniqueId().toString(), fromWorld.getName(), activity);
@@ -56,36 +56,13 @@ public class TeleportListener implements Listener {
                 continue;
             }
 
-            if (timeoutString.contains("h")) {
-                timeout = Long.parseLong(timeoutString.replace("h", ""));
-            } else if (timeoutString.contains("m")) {
-                timeout = Long.parseLong(timeoutString.replace("m", ""));
+            boolean result = WorldTimeout.getInstance().calculateTime(timeoutString, timeout, player, permission, key, totalTimeout, currentTime);
+
+            if(!result){
+                player.sendMessage(WorldTimeout.PREFIX +
+                        WorldTimeout.getInstance().getConfig().getString("settings.noPerms").replace("&", "§"));
+                break;
             }
-
-            User user = LuckPermsProvider.get().getUserManager().getUser(player.getUniqueId());
-            permission = "system.realm.world." + timeout + "." + key;
-
-            if (!plugin.hasPermission(user, permission)) {
-                player.sendMessage(WorldTimeout.PREFIX + plugin.getConfig().getString("settings.noPerms").replace("&", "§"));
-                event.setCancelled(true);
-                return;
-            }
-
-            if (plugin.getPlayerTimeoutMySQL().hasPlayerTimeoutInWorld(player.getUniqueId().toString(), key)) {
-                totalTimeout = plugin.getPlayerTimeoutMySQL().getPlayerTimeout(player.getUniqueId().toString(), key);
-                totalTimeout = currentTime + totalTimeout + 1000;
-
-                plugin.getActivityTimeout().put(player, totalTimeout);
-                plugin.run(totalTimeout, player, key, permission, user);
-                return;
-            }
-
-            timeout = plugin.durationStringToMilliseconds(timeoutString);
-            totalTimeout = currentTime + timeout + 1000;
-            plugin.getPlayerTimeoutMySQL().addPlayerTimeout(player.getUniqueId().toString(), key, totalTimeout);
-            plugin.getActivityTimeout().put(player, totalTimeout);
-
-            plugin.run(totalTimeout, player, key, permission, user);
             return;
         }
     }
