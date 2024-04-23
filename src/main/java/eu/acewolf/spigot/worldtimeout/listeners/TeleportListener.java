@@ -61,6 +61,7 @@ public class TeleportListener implements Listener {
             if(!result){
                 player.sendMessage(WorldTimeout.PREFIX +
                         WorldTimeout.getInstance().getConfig().getString("settings.noPerms").replace("&", "§"));
+                event.setCancelled(true);
                 break;
             }
             return;
