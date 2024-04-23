@@ -14,10 +14,10 @@ public class PlayerTimeoutMySQL {
     public void createTable(){
         String sql = "CREATE TABLE IF NOT EXISTS playertimeout (id INT AUTO_INCREMENT PRIMARY KEY," +
                 "player_uuid VARCHAR(36) NOT NULL," +
-                "world VARCHAR(10) NOT NULL" +
+                "world VARCHAR(10) NOT NULL," +
                 "activity LONG NOT NULL)";
 
-        try (Statement statement = this.mySQL.getConnection().createStatement()){
+        try (Statement statement = mySQL.getConnection().createStatement()){
             statement.executeUpdate(sql);
         } catch (SQLException e){
         }
@@ -26,7 +26,7 @@ public class PlayerTimeoutMySQL {
     public void addPlayerTimeout(String playerUUID, String world, long activity){
         String sql = "INSERT INTO playertimeout (player_uuid, world, activity) VALUES (?, ?, ?)";
 
-        try(PreparedStatement preparedStatement = this.mySQL.getConnection().prepareStatement(sql)){
+        try(PreparedStatement preparedStatement = mySQL.getConnection().prepareStatement(sql)){
             preparedStatement.setString(1, playerUUID);
             preparedStatement.setString(2, world);
             preparedStatement.setLong(3, activity);
@@ -39,7 +39,7 @@ public class PlayerTimeoutMySQL {
     public void removePlayerTimeout(String playerUUID, String world){
         String sql = "DELETE FROM playertimeout WHERE player_uuid=? AND world=?";
 
-        try(PreparedStatement preparedStatement = this.mySQL.getConnection().prepareStatement(sql)){
+        try(PreparedStatement preparedStatement = mySQL.getConnection().prepareStatement(sql)){
             preparedStatement.setString(1, playerUUID);
             preparedStatement.setString(2, world);
 
@@ -51,7 +51,7 @@ public class PlayerTimeoutMySQL {
     public void updatePlayerTimeout(String playerUUID, String world, long activity){
         String sql = "UPDATE playertimeout SET activity=? WHERE player_uuid=? AND world=?";
 
-        try(PreparedStatement preparedStatement = this.mySQL.getConnection().prepareStatement(sql)){
+        try(PreparedStatement preparedStatement = mySQL.getConnection().prepareStatement(sql)){
             preparedStatement.setLong(1, activity);
             preparedStatement.setString(2, playerUUID);
             preparedStatement.setString(3, world);
@@ -64,7 +64,7 @@ public class PlayerTimeoutMySQL {
     public boolean hasPlayerTimeoutInWorld(String playerUUID, String world){
         String sql = "SELECT COUNT(activity) AS count FROM playertimeout WHERE player_uuid=? AND world=?";
 
-        try(PreparedStatement preparedStatement = this.mySQL.getConnection().prepareStatement(sql)){
+        try(PreparedStatement preparedStatement = mySQL.getConnection().prepareStatement(sql)){
             preparedStatement.setString(1, playerUUID);
             preparedStatement.setString(2, world);
 
@@ -83,7 +83,7 @@ public class PlayerTimeoutMySQL {
     public long getPlayerTimeout(String playerUUID, String world){
         String sql = "SELECT activity FROM playertimeout WHERE player_uuid=? AND world=?";
 
-        try(PreparedStatement preparedStatement = this.mySQL.getConnection().prepareStatement(sql)){
+        try(PreparedStatement preparedStatement = mySQL.getConnection().prepareStatement(sql)){
             preparedStatement.setString(1, playerUUID);
             preparedStatement.setString(2, world);
 

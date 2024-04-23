@@ -3,9 +3,7 @@ package eu.acewolf.spigot.worldtimeout.listeners;
 import eu.acewolf.spigot.worldtimeout.WorldTimeout;
 import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.model.user.User;
-import net.luckperms.api.node.types.PermissionNode;
-import net.md_5.bungee.api.ChatMessageType;
-import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -14,11 +12,18 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.time.Duration;
+import java.util.Map;
 
 public class TeleportListener implements Listener {
 
+    private WorldTimeout plugin;
+
+    public TeleportListener(WorldTimeout plugin){
+        this.plugin = plugin;
+    }
+
     @EventHandler
-    public void onTeleport(PlayerTeleportEvent event){
+    public void onTeleport(PlayerTeleportEvent event) {
         Player player = event.getPlayer();
         World world = event.getTo().getWorld();
         World fromWorld = event.getFrom().getWorld();
@@ -27,109 +32,61 @@ public class TeleportListener implements Listener {
         long totalTimeout;
         String permission;
 
-        for(String key : WorldTimeout.getInstance().getConfig().getConfigurationSection("worlds").getKeys(false)){
-            if (fromWorld.getName().equalsIgnoreCase(key) && WorldTimeout.getInstance().activityTimeout.get(player) != null &&
-            WorldTimeout.getInstance().getPlayerTimeoutMySQL().hasPlayerTimeoutInWorld(player.getUniqueId().toString(), key)) {
-                long activty = WorldTimeout.getInstance().activityTimeout.get(player);
-                WorldTimeout.getInstance().getPlayerTimeoutMySQL().updatePlayerTimeout(player.getUniqueId().toString(), fromWorld.getName(), activty);
-                WorldTimeout.getInstance().activityTimeout.remove(player);
+        Map<String, Object> configWorlds = plugin.getConfig().getConfigurationSection("worlds").getValues(false);
+
+        if (configWorlds.containsKey(world.getName()) && configWorlds.containsKey(fromWorld.getName())) {
+            player.sendMessage(WorldTimeout.PREFIX + plugin.getConfig().getString("settings.time.twoWorlds").replace("&", "§"));
+            event.setCancelled(true);
+            return;
+        }
+
+        for (Map.Entry<String, Object> entry : configWorlds.entrySet()) {
+            String key = entry.getKey();
+            String timeoutString = (String) entry.getValue();
+
+            if (fromWorld.getName().equalsIgnoreCase(key) && plugin.getActivityTimeout().get(player) != null &&
+                    plugin.getPlayerTimeoutMySQL().hasPlayerTimeoutInWorld(player.getUniqueId().toString(), key)) {
+                long activity = plugin.getActivityTimeout().get(player);
+                plugin.getPlayerTimeoutMySQL().updatePlayerTimeout(player.getUniqueId().toString(), fromWorld.getName(), activity);
+                plugin.getActivityTimeout().remove(player);
                 break;
             }
+
             if (!world.getName().equalsIgnoreCase(key)) {
                 continue;
             }
-            String timeoutString = WorldTimeout.getInstance().getConfig().getString("worlds." + key);
 
-            if(timeoutString.contains("h")){
-                timeout = Integer.parseInt(timeoutString.replace("h", ""));
-            } else if(timeoutString.contains("m")){
-                timeout = Integer.parseInt(timeoutString.replace("m", ""));
+            if (timeoutString.contains("h")) {
+                timeout = Long.parseLong(timeoutString.replace("h", ""));
+            } else if (timeoutString.contains("m")) {
+                timeout = Long.parseLong(timeoutString.replace("m", ""));
             }
 
-            User user = LuckPermsProvider.get().getPlayerAdapter(Player.class).getUser(player);
-
+            User user = LuckPermsProvider.get().getUserManager().getUser(player.getUniqueId());
             permission = "system.realm.world." + timeout + "." + key;
-            if(!hasPermission(user, permission)){
-                player.sendMessage(WorldTimeout.PREFIX +
-                        WorldTimeout.getInstance().getConfig().getString("settings.noPerms").replace("&", "§"));
+
+            if (!plugin.hasPermission(user, permission)) {
+                player.sendMessage(WorldTimeout.PREFIX + plugin.getConfig().getString("settings.noPerms").replace("&", "§"));
                 event.setCancelled(true);
-                break;
+                return;
             }
-            if (WorldTimeout.getInstance().getPlayerTimeoutMySQL().hasPlayerTimeoutInWorld(player.getUniqueId().toString(), key)) {
-                totalTimeout = WorldTimeout.getInstance().getPlayerTimeoutMySQL().getPlayerTimeout(player.getUniqueId().toString(), key);
+
+            if (plugin.getPlayerTimeoutMySQL().hasPlayerTimeoutInWorld(player.getUniqueId().toString(), key)) {
+                totalTimeout = plugin.getPlayerTimeoutMySQL().getPlayerTimeout(player.getUniqueId().toString(), key);
                 totalTimeout = currentTime + totalTimeout + 1000;
 
-                WorldTimeout.getInstance().activityTimeout.put(player, totalTimeout);
-
-                run(totalTimeout, player, key, permission, user);
-                break;
+                plugin.getActivityTimeout().put(player, totalTimeout);
+                plugin.run(totalTimeout, player, key, permission, user);
+                return;
             }
 
-
-            timeout = durationStringToMilliseconds(timeoutString);
+            timeout = plugin.durationStringToMilliseconds(timeoutString);
             totalTimeout = currentTime + timeout + 1000;
-            WorldTimeout.getInstance().getPlayerTimeoutMySQL().addPlayerTimeout(player.getUniqueId().toString(), key, totalTimeout);
-            WorldTimeout.getInstance().activityTimeout.put(player, totalTimeout);
+            plugin.getPlayerTimeoutMySQL().addPlayerTimeout(player.getUniqueId().toString(), key, totalTimeout);
+            plugin.getActivityTimeout().put(player, totalTimeout);
 
-            run(totalTimeout, player, key, permission, user);
-            break;
+            plugin.run(totalTimeout, player, key, permission, user);
+            return;
         }
-    }
-
-    public boolean hasPermission(User user, String permission) {
-        return user.getCachedData().getPermissionData().checkPermission(permission).asBoolean();
-    }
-
-    private long durationStringToMilliseconds(String durationString) {
-        Duration duration = Duration.parse("PT" + durationString.toUpperCase());
-        return duration.toMillis();
-    }
-
-    public void run(long end, Player player, String world, String permission, User user) {
-
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if(!player.isOnline()){
-                    cancel();
-                    return;
-                }
-
-                long start = System.currentTimeMillis();
-                long remainingTimeout = end - start;
-
-                if (!WorldTimeout.getInstance().activityTimeout.containsKey(player)) {
-                    cancel();
-                    return;
-                }
-                if (remainingTimeout <= 0) {
-                    player.sendMessage(WorldTimeout.PREFIX +
-                            WorldTimeout.getInstance().getConfig().getString("settings.time.expired").replace("&", "§"));
-                    WorldTimeout.getInstance().getPlayerTimeoutMySQL().removePlayerTimeout(player.getUniqueId().toString(), world);
-                    WorldTimeout.getInstance().activityTimeout.remove(player);
-                    PermissionNode node = PermissionNode.builder(permission).value(true).build();
-                    user.data().remove(node);
-                    LuckPermsProvider.get().getUserManager().saveUser(user);
-                    player.performCommand(WorldTimeout.getInstance().getConfig().getString("settings.time.command").replace("/", ""));
-                    cancel();
-                    return;
-                }
-
-                if(WorldTimeout.getInstance().getConfig().getBoolean("settings.actionbar.activated")){
-                    long seconds = remainingTimeout / 1000;
-                    long minutes = seconds / 60;
-                    long remainingSeconds = seconds % 60;
-                    long hours = minutes / 60;
-
-                    String actionbarFormat = WorldTimeout.getInstance().getConfig().getString("settings.actionbar.format").replace("&", "§");
-                    actionbarFormat = actionbarFormat.replace("%HOURS%", String.valueOf(hours));
-                    actionbarFormat = actionbarFormat.replace("%MINUTES%", String.valueOf(minutes));
-                    actionbarFormat = actionbarFormat.replace("%SECONDS%", String.valueOf(remainingSeconds));
-
-                    player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(actionbarFormat));
-                }
-                WorldTimeout.getInstance().activityTimeout.replace(player, remainingTimeout);
-            }
-        }.runTaskTimer(WorldTimeout.getInstance(), 20, 20);
     }
 }

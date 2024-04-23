@@ -18,3 +18,4 @@ settings:
   time:
     expired: "&cZeit abgelaufen"
     command: "/spawn"
+    twoWorlds: "&cDu darfst nicht in zwei Welten doppelt sein!"
